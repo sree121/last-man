@@ -128,6 +128,20 @@ button:focus-visible{outline:3px solid var(--cyan); outline-offset:3px}
 .estats span{display:block; font-family:var(--px); font-size:clamp(5px,1.2vw,7px); color:var(--silver); margin-bottom:3px}
 .estats b{font-weight:400; font-size:clamp(18px,4vw,26px); color:var(--sand); line-height:.9}
 .newbest{margin:0; font-family:var(--px); font-size:clamp(8px,1.8vw,11px); color:var(--ink); background:var(--sand); padding:5px 8px; animation:lowp .5s steps(1) infinite}
+.levels{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; width:min(100%,380px)}
+.lvl{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:7px 2px 6px; border:0; border-radius:4px;
+  background:#000; color:var(--white); box-shadow:0 0 0 2px var(--white); font-family:var(--px)}
+.lvl b{font-weight:400; font-size:clamp(11px,2.6vw,15px)}
+.lvl span{font-size:clamp(5px,1.1vw,6px); line-height:1.4; color:var(--silver); text-align:center}
+.lvl.done{box-shadow:0 0 0 2px var(--lime)}
+.lvl.done::after{content:""; position:absolute; top:3px; right:3px; width:5px; height:5px; background:var(--lime)}
+.lvl:hover:not(.locked){background:#1a1a1a}
+.lvl.locked{color:var(--label); box-shadow:0 0 0 2px #3a3a3a; cursor:not-allowed}
+.lvl.locked b{color:#3a3a3a}
+.lvl.final:not(.locked){box-shadow:0 0 0 2px var(--red)}
+.lvl.final.done{box-shadow:0 0 0 2px var(--lime)}
+.lock{display:block; width:10px; height:8px; margin:0 auto; background:var(--label); position:relative; top:2px}
+.lock::before{content:""; position:absolute; left:2px; top:-6px; width:6px; height:6px; border:2px solid var(--label); border-bottom:0; box-sizing:border-box}
 #shareTxt{width:min(100%,420px); height:90px; font-family:var(--vt); font-size:16px; background:var(--ink); color:var(--white); border:2px solid var(--slate); padding:6px}
 
 /* controller pad */
@@ -288,6 +302,9 @@ body{background:#000; background-image:none}
           <h2 class="big">PLAYER <span id="tNo">000</span></h2>
           <p class="sub">456 players. Five playground games. Survive them all and you walk out with the prize.</p>
           <button class="btn" id="startBtn">ENTER THE GAME</button>
+          <p class="meta">OR JUMP TO A GAME</p>
+          <div class="levels" id="levels"></div>
+          <p class="meta" id="lockNote"></p>
           <p class="meta">BEST SCORE <b id="tBest">0</b> · PRESS ENTER</p>
         </div>
 
@@ -314,6 +331,7 @@ body{background:#000; background-image:none}
           <p class="newbest" id="eBest" hidden>NEW BEST SCORE</p>
           <div class="row">
             <button class="btn" id="againBtn">PLAY AGAIN</button>
+            <button class="btn ghostb" id="menuBtn">GAMES</button>
             <button class="btn ghostb" id="shareBtn">COPY RESULT</button>
           </div>
           <textarea id="shareTxt" readonly hidden aria-label="Result text to copy"></textarea>
@@ -366,6 +384,7 @@ body{background:#000; background-image:none}
 <div class="modal" id="help" hidden>
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <h3 id="helpTitle">HOW TO PLAY</h3>
+    <p><b>ENTER THE GAME</b> plays all five games in order. You can also jump straight into games 1–4 from the title screen and carry on from there. The Final Duel unlocks once you've beaten any 2 of the other games. Beaten games get a green corner.</p>
     <h4>ROUND 1 · RED LIGHT, GREEN LIGHT</h4>
     <ul>
       <li><b>Tap</b> Space, ↑, the RUN button or the screen to run. Every tap is a stride: tap faster to run faster. Stop tapping and you stop.</li>
@@ -432,7 +451,11 @@ const store = {
   get(k, d){ try { const v = localStorage.getItem('lps_' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
   set(k, v){ try { localStorage.setItem('lps_' + k, JSON.stringify(v)); } catch(e){} }
 };
-let rec = Object.assign({best:0, fastest:null, closest:null, runs:0, wins:0, log:[], fails:0, assist:0}, store.get('rec', {}));
+let rec = Object.assign({best:0, fastest:null, closest:null, runs:0, wins:0, log:[], fails:0, assist:0, done:[false,false,false,false,false]}, store.get('rec', {}));
+if (!Array.isArray(rec.done) || rec.done.length !== 5) rec.done = [false,false,false,false,false];
+const FINAL_NEEDS = 2;   // games 1–4 beaten before the final unlocks
+const doneCount = () => rec.done.slice(0, 4).filter(Boolean).length;
+function markDone(r){ if (!rec.done[r-1]){ rec.done[r-1] = true; store.set('rec', rec); if (r < 5 && doneCount() === FINAL_NEEDS) later(1.2, () => callout('FINAL DUEL UNLOCKED', 'lime')); } }
 // Hidden comeback help: after 5+ eliminations in a row, the next 2–4 runs are quietly easier
 // (E() is true during those runs). Never shown or mentioned anywhere in the UI.
 const ASSIST_AFTER = 5;
@@ -729,7 +752,7 @@ function timeUpR1(){
   if (!S.me.done && !S.me.dead) killMe('Time ran out ' + Math.ceil(LEN - S.me.y) + 'm from the finish line.');
 }
 function finishR1(){
-  S.r1Time = S.t; S.score += 1000 + Math.floor(S.timeLeft)*25; S.cleared++;
+  S.r1Time = S.t; S.score += 1000 + Math.floor(S.timeLeft)*25; S.cleared++; markDone(1);
   S.taps = S.r1Time <= 34 ? 2 : S.r1Time <= 46 ? 1 : 0;
   SFX.win(); callout('SAFE! ' + S.r1Time.toFixed(1) + 's', 'lime'); setPad();
   later(2.2, () => {
@@ -838,7 +861,7 @@ function killR2(why){
 }
 function winR2(){
   const b = S.b; S.over = true;
-  S.score += (17 - S.vest)*100 + Math.floor(b.timer)*10; S.cleared++;
+  S.score += (17 - S.vest)*100 + Math.floor(b.timer)*10; S.cleared++; markDone(4);
   const others = b.q.filter(w => !w.me);
   S.rivalNo = (others.find(w => w.state === 'safe') || others[others.length - 1]).no;
   SFX.win(); callout('YOU MADE IT!', 'lime'); flash = .35; flashCol = C.lime; setPad();
@@ -982,7 +1005,7 @@ function endTug(won){
   const tg = S.tg; tg.phase = 'end'; tg.won = won; tg.p = clamp(tg.p, -1.05, 1.05);
   (won ? tg.them : tg.mine).forEach((m,i) => later(i*.12, () => { m.falling = true; if (i % 3 === 0) SFX.fall(); }));
   if (won){
-    S.score += 800 + tg.perfect*60; S.cleared++; S.aliveTarget = Math.ceil(S.aliveTarget/2);
+    S.score += 800 + tg.perfect*60; S.cleared++; markDone(2); S.aliveTarget = Math.ceil(S.aliveTarget/2);
     if (tg.perfect >= 6){ S.taps++; tg.grip = true; }
     SFX.win(); callout('THEY FELL!', 'lime'); later(2.6, showClearTug);
   } else {
@@ -1205,7 +1228,7 @@ function afterSong(){
   const m = S.m; m.survived++; S.score += 600;
   S.aliveTarget = 1 + Math.round((m.aliveStart - 1) * m.npcs.filter(n => !n.dead).length / m.start);
   m.song++;
-  if (m.song >= m.songs){ S.score += m.bonus*20; S.bridgeBonus += m.bonus; S.cleared++; SFX.win(); showClearMingle(); }
+  if (m.song >= m.songs){ S.score += m.bonus*20; S.bridgeBonus += m.bonus; S.cleared++; markDone(3); SFX.win(); showClearMingle(); }
   else { placeDisk(); startSong(); }
 }
 function showClearMingle(){
@@ -1380,7 +1403,7 @@ function updDuel(dt){
 function endDuel(won, how){
   const d = S.d; d.phase = 'end'; setPad();
   if (won){
-    d.out = how; S.cleared++; S.aliveTarget = 1;
+    d.out = how; S.cleared++; markDone(5); S.aliveTarget = 1;
     S.score += 3000 + Math.floor(d.time)*40 + (how === 'out' ? 1000 : 0);
     callout(how === 'out' ? 'RIVAL OFF THE COURT!' : 'YOU REACHED THE HEAD!', 'lime'); SFX.win(); flash = .4; flashCol = C.lime;
     for (let i = 0; i < 6; i++) later(i*.15, () => burst(rnd(40, 216), rnd(40, 120), 14, [C.sand, C.lime, C.cyan, C.red, C.white], 90));
@@ -1841,9 +1864,10 @@ addEventListener('keyup', e => { keys.delete(e.key.length === 1 ? e.key.toLowerC
 addEventListener('blur', () => { releaseAll(); keys.clear(); ptr.on = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden){ releaseAll(); keys.clear(); ptr.on = false; } });
 
-$('startBtn').addEventListener('click', () => { audio(); showCardR1(); });
+$('startBtn').addEventListener('click', () => { audio(); startAt(1); });
+$('menuBtn').addEventListener('click', () => { audio(); newRun(); show('ovTitle'); renderLevels(); });
 $('cBtn').addEventListener('click', () => { audio(); if (cardNext) cardNext(); });
-$('againBtn').addEventListener('click', () => { audio(); newRun(); showCardR1(); });
+$('againBtn').addEventListener('click', () => { audio(); const from = S.startLevel || 1; newRun(); startAt(from); });
 $('shareBtn').addEventListener('click', () => {
   const txt = shareText(), ta = $('shareTxt');
   const fallback = () => { ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); $('shareBtn').textContent = 'SELECTED · COPY IT'; };
@@ -1862,8 +1886,44 @@ $('helpBtn').addEventListener('click', () => { $('help').hidden = false; $('help
 $('helpClose').addEventListener('click', () => { $('help').hidden = true; });
 $('help').addEventListener('click', e => { if (e.target === $('help')) $('help').hidden = true; });
 
+/* ---------- level select ---------- */
+const LEVELS = [
+  { n:1, name:'RED<br>LIGHT' }, { n:2, name:'TUG OF<br>WAR' }, { n:3, name:'MINGLE' },
+  { n:4, name:'GLASS<br>BRIDGE' }, { n:5, name:'FINAL<br>DUEL' }
+];
+const START_ALIVE = [456, 228, 114, 40, 2];   // plausible crowd size when you jump straight in
+const finalUnlocked = () => doneCount() >= FINAL_NEEDS;
+function startAt(level){
+  if (level === 5 && !finalUnlocked()) return;
+  S.startLevel = level;
+  S.aliveTarget = S.aliveShown = START_ALIVE[level - 1];
+  if (level === 1) showCardR1();
+  else if (level === 2) showCardTug();
+  else if (level === 3) showCardMingle();
+  else if (level === 4) showPick();
+  else { S.rivalNo = otherNo(new Set([S.playerNo])); showCardDuel(); }
+}
+function renderLevels(){
+  const box = $('levels'), note = $('lockNote'), open = finalUnlocked(), left = FINAL_NEEDS - doneCount();
+  box.innerHTML = '';
+  for (const L of LEVELS){
+    const locked = L.n === 5 && !open, b = document.createElement('button');
+    b.className = 'lvl' + (rec.done[L.n - 1] ? ' done' : '') + (L.n === 5 ? ' final' : '') + (locked ? ' locked' : '');
+    b.innerHTML = locked ? `<i class="lock"></i><span>${L.name}</span>` : `<b>${L.n}</b><span>${L.name}</span>`;
+    b.setAttribute('aria-label', `Game ${L.n}: ${L.name.replace('<br>', ' ')}` + (locked ? ` (locked: beat ${left} more)` : ''));
+    b.addEventListener('click', () => {
+      audio();
+      if (locked){ note.textContent = `LOCKED · BEAT ${left} MORE GAME${left > 1 ? 'S' : ''} FIRST`; note.style.color = 'var(--red)'; SFX.blip(); return; }
+      startAt(L.n);
+    });
+    box.appendChild(b);
+  }
+  note.style.color = '';
+  note.textContent = open ? 'FINAL DUEL UNLOCKED' : `BEAT ANY ${FINAL_NEEDS} GAMES TO UNLOCK THE FINAL · ${doneCount()}/${FINAL_NEEDS}`;
+}
+
 /* ---------- boot ---------- */
-buildVests(); newRun(); renderRecords(); setPad(); show('ovTitle');
+buildVests(); newRun(); renderRecords(); renderLevels(); setPad(); show('ovTitle');
 requestAnimationFrame(loop);
 })();
 </script>
