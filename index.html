@@ -142,6 +142,15 @@ button:focus-visible{outline:3px solid var(--cyan); outline-offset:3px}
 .lvl.final.done{box-shadow:0 0 0 2px var(--lime)}
 .lock{display:block; width:10px; height:8px; margin:0 auto; background:var(--label); position:relative; top:2px}
 .lock::before{content:""; position:absolute; left:2px; top:-6px; width:6px; height:6px; border:2px solid var(--label); border-bottom:0; box-sizing:border-box}
+.mhud{position:absolute; left:50%; top:11.5%; transform:translateX(-50%); z-index:5; pointer-events:none; display:flex; align-items:center; gap:8px;
+  padding:5px 9px; background:#000; border:2px solid var(--white); border-radius:4px; white-space:nowrap}
+.mhud .lab{font-family:var(--px); font-size:clamp(6px,1.4vw,8px); color:var(--silver)}
+.mhud b{font-family:var(--px); font-weight:400; font-size:clamp(12px,3vw,18px); color:var(--sand)}
+.mhud .pips{display:flex; gap:3px}
+.mhud .pips i{width:clamp(6px,1.4vw,9px); height:clamp(9px,2vw,13px); background:#262626}
+.mhud .pips i.on{background:var(--lime)}
+.mhud.danger{border-color:var(--red); animation:lowp .5s steps(1) infinite}
+.mhud.danger #mhRooms{color:var(--red)}
 #shareTxt{width:min(100%,420px); height:90px; font-family:var(--vt); font-size:16px; background:var(--ink); color:var(--white); border:2px solid var(--slate); padding:6px}
 
 /* controller pad */
@@ -206,6 +215,8 @@ body{background:#000; background-image:none}
 .ghost{background:#000; color:var(--white); border:3px solid var(--white); border-radius:4px; box-shadow:0 0 0 2px #000; padding:9px 12px}
 .ghost:active{transform:translate(1px,1px); box-shadow:0 0 0 2px #000}
 .ghost[aria-pressed="false"]{color:var(--label); border-color:var(--label)}
+.ghost.quit{color:var(--red); border-color:var(--red)}
+.ghost.quit.armed{background:var(--red); color:var(--white); animation:lowp .4s steps(1) infinite}
 
 /* the console body: dark plastic, power light, model badge */
 .tv{position:relative; background:linear-gradient(180deg, var(--plastic-hi), var(--plastic) 30%, var(--plastic)); padding-top:34px; border-radius:10px;
@@ -277,6 +288,7 @@ body{background:#000; background-image:none}
       <span class="tag">456 PLAYERS · 5 GAMES · 1 LIFE</span>
     </div>
     <div class="top-actions">
+      <button class="ghost quit" id="quitBtn" hidden>QUIT GAME</button>
       <button class="ghost" id="soundBtn" aria-pressed="true">SOUND ON</button>
       <button class="ghost" id="helpBtn">HOW TO PLAY</button>
     </div>
@@ -296,6 +308,7 @@ body{background:#000; background-image:none}
         <canvas id="cv" width="256" height="240" aria-label="Game screen"></canvas>
         <div class="light" id="light" hidden><span id="lightTxt">GREEN LIGHT</span><div class="chant" id="chant"></div></div>
         <div class="callout" id="callout" aria-live="polite"></div>
+        <div class="mhud" id="mhud" hidden><span class="lab">GROUPS OF</span><b id="mhN">3</b><span class="pips" id="mhPips"></span><span class="lab" id="mhRooms">ROOMS</span></div>
 
         <div class="ov" id="ovTitle">
           <p class="k">YOU HAVE BEEN INVITED</p>
@@ -384,10 +397,12 @@ body{background:#000; background-image:none}
 <div class="modal" id="help" hidden>
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
     <h3 id="helpTitle">HOW TO PLAY</h3>
+    <p>Changed your mind? Press <b>QUIT GAME</b> at the top (or Esc) twice to leave the current game and pick another. Quitting doesn't count as a loss.</p>
     <p><b>ENTER THE GAME</b> plays all five games in order. You can also jump straight into games 1–4 from the title screen and carry on from there. The Final Duel unlocks once you've beaten any 2 of the other games. Beaten games get a green corner.</p>
     <h4>ROUND 1 · RED LIGHT, GREEN LIGHT</h4>
     <ul>
       <li><b>Tap</b> Space, ↑, the RUN button or the screen to run. Every tap is a stride: tap faster to run faster. Stop tapping and you stop.</li>
+      <li>A voice calls <b>“Green light!”</b> and <b>“Red light!”</b> (your device's built-in voice; SOUND OFF mutes it too).</li>
       <li>The Watcher chants with its back turned, then turns around. Every chant is a different length (3 to 12 notes). It can suddenly rush, go silent for a moment without turning, or twitch its head as a bluff.</li>
       <li>After a red light it sometimes starts turning away, then peeks back. Only move once the light says <b>GREEN</b>.</li>
       <li>If you're still moving once it's facing you, the wall guns open fire. You need about 0.2s to skid to a stop.</li>
@@ -404,9 +419,10 @@ body{background:#000; background-image:none}
     </ul>
     <h4>ROUND 3 · MINGLE</h4>
     <ul>
-      <li>Ride the carousel while the music plays. When it stops, a group size is called.</li>
-      <li>Move with <b>arrows</b>/<b>WASD</b> or hold the screen where you want to go. Touch free-standing players to add them to your group. You count as one.</li>
-      <li>Walk into an open (green) door with exactly the right number. One group per room, and the doors lock after 13 seconds.</li>
+      <li>While the music plays you ride the spinning carousel, but you can walk around on it to pick your spot. When it stops, a group size is called.</li>
+      <li>Free players wave and have a <b>?</b> over their heads. Tap one to chase and grab them (or walk into them). You count as one. Some come running to you. Other groups can steal them first.</li>
+      <li>Other groups wear their own colors and hold hands. Yours is linked to you in green.</li>
+      <li>Tap a green door to run your group in. One group per room. The panel at the top shows how many rooms are left. Doors flash red in the last 3 seconds and lock at zero.</li>
       <li>Two songs. Every second left on the lock clock when you get in is added to the bridge clock.</li>
     </ul>
     <h4>ROUND 4 · THE GLASS BRIDGE</h4>
@@ -422,7 +438,7 @@ body{background:#000; background-image:none}
     <ul>
       <li>One rival guards the circle at the head of the court. Reach it within 45 seconds to win.</li>
       <li>Move with arrows/WASD or by holding the screen. <b>Space</b> or DASH lunges forward.</li>
-      <li>When your rival flashes, he's about to charge. Sidestep, then dash into him while he's dizzy to shove him off the court.</li>
+      <li>When your rival flashes, a red dotted line shows where he's about to charge. Step out of the line, then dash into him while he's dizzy to shove him off the court.</li>
       <li>If you get shoved off the chalk lines, you lose. Guessing 3+ panes on the bridge makes your dash recharge faster.</li>
     </ul>
     <div class="row"><button class="btn" id="helpClose">GOT IT</button></div>
@@ -462,7 +478,7 @@ const ASSIST_AFTER = 5;
 const E = () => !!(S && S.assist);
 
 /* ---------- tiny pixel font ---------- */
-const FONT = {'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001','5':'111100111001111','6':'111100111101111','7':'111001001001001','8':'111101111101111','9':'111101111001111','M':'101111111101101','Y':'101101010010010','O':'111101101101111','U':'101101101101111','A':'010101111101101','H':'101101111101101','!':'010010010000010','.':'000000000000010'};
+const FONT = {'0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001','5':'111100111001111','6':'111100111101111','7':'111001001001001','8':'111101111101111','9':'111101111001111','M':'101111111101101','Y':'101101010010010','O':'111101101101111','U':'101101101101111','A':'010101111101101','H':'101101111101101','!':'010010010000010','.':'000000000000010','+':'000010111010000','?':'111001011000010'};
 function ptext(str, x, y, c, s=1){ for (const ch of str){ const b = FONT[ch]; if (b) for (let i=0;i<15;i++) if (b[i]==='1') R(x+(i%3)*s, y+((i/3)|0)*s, s, s, c); x += 4*s; } }
 const pwidth = (str, s=1) => str.length*4*s - s;
 
@@ -505,10 +521,31 @@ const SFX = {
   tap(){ tone(1400, .04, 'triangle', .12); tone(1400, .04, 'triangle', .12, .12); }
 };
 const MEL = [659,659,784,659,587,523,587,659,784,880]; // original ten-note chant
+// A bright, high voice calls the lights (uses the browser's built-in speech; silently skipped if unavailable).
+let VOICE = null;
+function pickVoice(){
+  try {
+    const vs = speechSynthesis.getVoices(); if (!vs.length) return;
+    const female = /female|woman|girl|samantha|zira|karen|victoria|tessa|moira|fiona|veena|heera|susan|allison|ava|serena|kate|google uk english female|google us english/i;
+    VOICE = vs.find(v => /^en/i.test(v.lang) && female.test(v.name)) || vs.find(v => /^en/i.test(v.lang)) || vs[0];
+  } catch(e){}
+}
+try { if ('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } } catch(e){}
+function say(text, rate){
+  if (!soundOn) return;
+  try {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (VOICE) u.voice = VOICE;
+    u.pitch = 1.9; u.rate = rate || 1.1; u.volume = 1;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
 
 /* ---------- constants ---------- */
 // Red Light controls: every tap is a stride. Tap faster = run faster (up to TOPV). Stop tapping = you brake.
-const LEN = 100, R1TIME = 70, PX = 7, ACC = 7, MAXV = 6, TOPV = 9, TAP_WINDOW = 800, TAP_GRACE = 230, DEC = 32, SKID = 22, NPCN = 56;
+const LEN = 100, R1TIME = 70, PX = 7, ACC = 7, MAXV = 6, TOPV = 9, TAP_WINDOW = 800, TAP_GRACE = 230, DEC = 32, SKID = 22, NPCN = 46;
 const ROWS = 12, ENTRY = 28, rowWy = i => 48 + i*26, END_WY = 48 + ROWS*26, laneX = l => l ? 160 : 96, BRIDGE_TIME = 90;
 
 /* ---------- state ---------- */
@@ -529,7 +566,7 @@ function newRun(){
     S.npcs.push({ x: 18 + Math.random()*220, y: rnd(-2.6, .4), v:0, max: rnd(4.1, 5.9), dead:false, deadT:0, done:false,
       anim:Math.random()*3, startDelay:.3, stopAfter:0, doomed:false, killAt:null, suit: Math.random()<.5 ? C.teal : '#2b7e70' });
   }
-  S.npcs = S.npcs.filter(n => Math.abs(n.x-128) > 7 || Math.abs(n.y) > 1.2);
+  S.npcs = S.npcs.filter(n => Math.abs(n.x-128) > 11 || Math.abs(n.y) > 1.6);
   S.ph = { state:'idle', t:0, idx:0, notes:10, tempo:.3, next:0, turnDur:.5, turnStart:0, redDur:2, beat:0, gaps:[], twitchAt:-1, twitchT:0, peek:false };
   S.chantShift = 0;
   S.assist = rec.assist > 0;   // silent: nothing on screen changes or announces it
@@ -569,7 +606,7 @@ function burst(x, y, n, cols, sp=60){ for (let i=0;i<n;i++) parts.push({x, y, vx
 const HINTS = {
   r1: 'TAP TO RUN · TAP FASTER TO GO FASTER · STOP TAPPING BEFORE THE WATCHER TURNS',
   tug: 'SPACE OR PULL IN THE GREEN ZONE · ↓ OR LEAN BACK WHEN THEY HEAVE',
-  mingle: 'TAP WHERE YOU WANT TO GO (OR USE ARROWS) · TOUCH FREE PLAYERS TO GRAB THEM · WALK INTO AN OPEN DOOR',
+  mingle: 'TAP A WAVING PLAYER TO GRAB THEM · TAP A GREEN DOOR TO RUN IN · TAP ANYWHERE TO WALK (ARROWS WORK TOO)',
   r2: '← / → OR TAP A SIDE OF THE SCREEN TO JUMP · T FOR A TAP TEST · WATCH FOR THE GLINT',
   duel: 'TAP WHERE YOU WANT TO GO (OR USE ARROWS) · DASH TO SHOVE · REACH THE HEAD CIRCLE'
 };
@@ -620,9 +657,10 @@ function startGreen(){
   ph.twitchAt = Math.random() < (E() ? .15 : .35) ? rnd(.4, 1.2) : -1; ph.twitchT = 0;
   for (const n of S.npcs){ n.doomed = false; n.startDelay = rnd(.08, .6); }
   ph.greenAt = S.t; ph.quickUsed = false;
-  setLight('green');
+  setLight('green'); say('Green light!', 1.15);
 }
-function beginTurn(dur){
+function beginTurn(dur, quiet){
+  if (!quiet) say('Red light!', 1.25);
   const ph = S.ph; ph.state = 'turning'; ph.t = 0; ph.turnDur = dur; ph.turnStart = S.t; SFX.turn(); setLight('turn');
   const pd = .07 + .09*prog();
   for (const n of S.npcs){ if (n.dead || n.done) continue; n.doomed = Math.random() < pd; n.stopAfter = n.doomed ? 9 : rnd(0, Math.max(.02, ph.turnDur - .22)); }
@@ -667,7 +705,7 @@ function updR1(dt){
       if (ph.t >= ph.redDur){ ph.state = 'unturn'; ph.t = 0; ph.peek = !E() && prog() > .15 && Math.random() < .3; SFX.turn(); }
     } else if (ph.state === 'unturn'){
       // sometimes it starts turning away... then snaps back to check. Light stays RED until real green.
-      if (ph.peek && ph.t >= .16){ ph.peek = false; beginTurn(.3); }
+      if (ph.peek && ph.t >= .16){ ph.peek = false; beginTurn(.3, true); }
       else if (ph.t >= .3){ S.chantShift = Math.random()*MEL.length|0; startGreen(); }
     }
   }
@@ -727,7 +765,7 @@ function wsR1(y){ return 232 - (y - S.cam)*PX; }
 function killNpc(n){
   n.dead = true; n.deadT = 0; n.killAt = null; n.v = 0;
   const py = wsR1(n.y);
-  if (py > 60 && py < H+10){ fireAt(n.x, py - 6); burst(n.x, py - 6, 7, [C.red, C.plum, C.white]); SFX.zap(); }
+  if (py > 60 && py < H+10){ fireAt(n.x, py - 10); burst(n.x, py - 10, 7, [C.red, C.plum, C.white]); SFX.zap(); }
 }
 function fireAt(tx, ty, big){
   let best = TURRETS[0], bd = 1e9;
@@ -740,8 +778,8 @@ function fireAt(tx, ty, big){
 function killMe(why){
   const me = S.me; me.dead = true; me.deadT = 0; me.v = 0; me.sprinting = false; releaseAll();
   S.death = { round:1, why };
-  fireAt(me.x, wsR1(me.y) - 6, true); later(.09, () => fireAt(me.x, wsR1(me.y) - 5, true));
-  burst(me.x, wsR1(me.y) - 6, 18, [C.red, C.plum, C.white], 80);
+  fireAt(me.x, wsR1(me.y) - 10, true); later(.09, () => fireAt(me.x, wsR1(me.y) - 8, true));
+  burst(me.x, wsR1(me.y) - 10, 18, [C.red, C.plum, C.white], 80);
   doShake(.45); flash = .7; flashCol = C.red; SFX.zap(); later(.4, SFX.lose);
   callout('ELIMINATED', 'red'); setPad();
   later(1.8, () => endRun(false));
@@ -913,7 +951,7 @@ function updR2(dt){
 
 /* ---------- shared helpers for the new rounds ---------- */
 const keys = new Set();
-const ptr = { on:false, down:false, x:0, y:0 };
+const ptr = { on:false, down:false, x:0, y:0, follow:null };
 function canvasXY(e){ const r = cv.getBoundingClientRect(); return { x:(e.clientX - r.left)/r.width*W, y:(e.clientY - r.top)/r.height*H }; }
 function moveDir(px, py){
   let x = 0, y = 0;
@@ -1022,13 +1060,16 @@ function showClearTug(){
     `<li>${fmt(S.aliveTarget)} players left · prize pot ${fmt(pot(S.aliveTarget))}</li>`;
   $('cBtn').textContent = 'TO MINGLE'; cardNext = showCardMingle; show('ovCard'); setPad();
 }
+// Side view for tug of war: about 10 x 17 px, leaning back on the rope. Arms at y-10.
 function sidePerson(x, y, dir, lean, o){
-  x = Math.round(x); y = Math.round(y); const L = Math.round(lean), s = o.suit || C.teal, hi = o.me ? C.lime : C.green;
-  R(x - 1 + dir*2, y - 4, 2, 4, C.ink); R(x - 1 - dir*2, y - 4, 2, 4, C.ink);
-  const bx = x - dir*L; R(bx - 2, y - 9, 4, 5, s); R(dir > 0 ? bx - 2 : bx + 1, y - 9, 1, 5, hi);
-  if (o.me) R(bx - 1, y - 8, 2, 2, C.sand);
-  const hx = x - dir*(L + 1); R(hx - 2, y - 13, 4, 4, C.ink); R(dir > 0 ? hx + 1 : hx - 2, y - 12, 1, 2, C.orange);
-  R(dir > 0 ? bx + 2 : bx - 5, y - 8, 4, 1, s);
+  x = Math.round(x); y = Math.round(y); const L = Math.round(lean), s = o.suit || C.teal, dk = shade(o.suit || C.teal), hi = o.me ? C.lime : C.green;
+  const fx = x - 1 + dir*3, bxl = x - 1 - dir*2;               // front and back foot
+  R(fx, y - 6, 2, 6, dk); R(bxl, y - 6, 2, 6, dk);
+  R(dir > 0 ? fx : fx - 1, y - 1, 3, 1, C.white); R(dir > 0 ? bxl : bxl - 1, y - 1, 3, 1, C.white);
+  const bx = x - dir*L; R(bx - 3, y - 12, 6, 7, s); R(dir > 0 ? bx - 3 : bx + 2, y - 12, 1, 7, hi); R(bx - 3, y - 6, 6, 1, dk);
+  if (o.me) R(bx - 1, y - 11, 2, 3, C.sand);
+  const hx = x - dir*(L + 1); R(hx - 3, y - 17, 6, 5, C.ink); R(dir > 0 ? hx + 2 : hx - 3, y - 16, 1, 3, C.orange);
+  R(dir > 0 ? bx + 3 : bx - 8, y - 10, 5, 2, s); R(dir > 0 ? bx + 8 : bx - 9, y - 10, 1, 2, C.orange);
 }
 function drawTug(){
   const tg = S.tg, t = performance.now()/1000, shift = -tg.p*24;
@@ -1044,22 +1085,22 @@ function drawTug(){
   R(TUG_GAP_L, TUG_FLOOR, TUG_GAP_R - TUG_GAP_L, H - TUG_FLOOR, '#000');
   for (let y = TUG_FLOOR + 6; y < H; y += 10) R(TUG_GAP_L + 4, y, TUG_GAP_R - TUG_GAP_L - 8, 1, '#0c0c0c');
   // rope
-  for (let x = 6; x < 250; x += 2){ const sag = Math.sin(Math.PI*(x - 6)/244)*3; R(x, TUG_FLOOR - 8 + sag, 2, 1, (x/2)%2 ? C.orange : C.sand); }
-  const mx = 128 + shift; R(mx - 1, TUG_FLOOR - 12, 3, 8, C.red); R(mx - 3, TUG_FLOOR - 12, 7, 2, C.red);
+  for (let x = 6; x < 250; x += 2){ const sag = Math.sin(Math.PI*(x - 6)/244)*3; R(x, TUG_FLOOR - 10 + sag, 2, 1, (x/2)%2 ? C.orange : C.sand); }
+  const mx = 128 + shift; R(mx - 1, TUG_FLOOR - 14, 3, 9, C.red); R(mx - 3, TUG_FLOOR - 14, 7, 2, C.red);
   R(127, TUG_FLOOR - 2, 2, 4, C.white);
   // teams
   const lean = 2 + tg.lean*2, warn = tg.warn > 0;
   tg.mine.forEach((m,i) => {
-    let x = 102 - i*9 + shift, y = TUG_FLOOR;
+    let x = 101 - i*11 + shift, y = TUG_FLOOR;
     if (m.falling){ x = lerp(x, 120, Math.min(1, m.fall*3)); y = TUG_FLOOR + Math.max(0, m.fall - .25)*Math.max(0, m.fall - .25)*400; if (y > H + 20) return; }
     sidePerson(x, y, 1, m.falling ? 0 : lean, { me: m.me });
     if (m.me && !m.falling){ youRing(x, y, t); youMarker(x, y, t); }
   });
   tg.them.forEach((m,i) => {
-    let x = 154 + i*9 + shift, y = TUG_FLOOR;
+    let x = 155 + i*11 + shift, y = TUG_FLOOR;
     if (m.falling){ x = lerp(x, 136, Math.min(1, m.fall*3)); y = TUG_FLOOR + Math.max(0, m.fall - .25)*Math.max(0, m.fall - .25)*400; if (y > H + 20) return; }
     sidePerson(x, y, -1, m.falling ? 0 : (warn ? 4 : 2 + Math.sin(t*3 + i)*.6), { suit:'#2b7e70' });
-    if (warn && !m.falling && (t*8|0) % 2) ptext('!', x - 1, y - 22, C.red);
+    if (warn && !m.falling && (t*8|0) % 2) ptext('!', x - 1, y - 26, C.red);
   });
   // who's winning
   R(28, 10, 200, 8, C.ink); R(29, 11, 198, 6, C.dark);
@@ -1079,147 +1120,223 @@ function drawTug(){
 
 /* ---------- ROUND 3 · MINGLE ---------- */
 const DOORX = [28, 68, 108, 148, 188, 228], MC = { x:128, y:120, R:58 };
+const GCOLS = ['#ef7d57', '#41a6f6', '#8a4fbf', '#ffcd75', '#e0527a', '#3b5dc9', '#c98652', '#b0b0b0', '#2fa39a'];
 const CAROUSEL = [523,659,784,659,523,659,784,1046,988,784,659,784,698,880,1046,880];
 function showCardMingle(){
   S.scene = 'card'; setLight(null); S.world = 'mingle'; initMingle();
   $('cK').textContent = 'ROUND 3 OF 5'; $('cT').innerHTML = 'MINGLE';
-  $('cR').innerHTML = '<li>Ride the carousel while the music plays.</li>' +
-    '<li>When it stops, a number is called. Touch free players to grab them. <b>You count too.</b></li>' +
-    '<li>Walk your group into an open door. One group per room. Doors lock when the clock hits zero.</li>';
+  $('cR').innerHTML = '<li>Walk around the spinning carousel while the music plays. Pick your spot.</li>' +
+    '<li>When it stops, a number is called. <b>Tap a waving player (?)</b> to grab them. You count too.</li>' +
+    '<li><b>Tap a green door</b> to run your group in. One group per room. Doors lock at zero.</li>';
   $('cBtn').textContent = 'READY'; cardNext = beginMingle; show('ovCard'); setPad();
 }
 function initMingle(){
   setTurrets(MINGLE_GUNS);
   const m = S.m = { phase:'wait', t:0, song:0, songs:2, N:0, lockT:0, bonus:0, beatT:0, noteI:0, spin:0, doors:[], npcs:[], followers:[], groups:[],
-                    me:{ x:128, y:120, anim:0, mv:false, inRoom:false, dead:false, r:34, a:Math.PI/2 }, needT:0, survived:0, done:false };
-  for (let i = 0; i < 12; i++){ const top = i < 6; m.doors.push({ x:DOORX[i%6], y: top ? 6 : 220, ex:DOORX[i%6], ey: top ? 30 : 212, top, state:'shut' }); }
-  for (let i = 0; i < 42; i++) m.npcs.push({ r:rnd(12,54), a:Math.random()*Math.PI*2, x:0, y:0, st:'disk', grp:null, anim:Math.random()*3, dead:false, deadT:0, inRoom:false, killAt:null, wt:0, wx:0, wy:0, mv:false });
+                    me:{ x:128, y:154, anim:0, mv:false, inRoom:false, dead:false, r:34, a:Math.PI/2 }, needT:0, survived:0, done:false,
+                    tick:0, dustT:0, pops:[], roomsWarned:99 };
+  for (let i = 0; i < 12; i++){ const top = i < 6; m.doors.push({ x:DOORX[i%6], y: top ? 5 : 219, ex:DOORX[i%6], ey: top ? 30 : 212, top, state:'shut', slam:0, n:0, col:C.red }); }
+  for (let i = 0; i < 42; i++) m.npcs.push({ r:rnd(12,54), a:Math.random()*Math.PI*2, x:0, y:0, st:'disk', grp:null, anim:Math.random()*3, dead:false, deadT:0,
+                                              inRoom:false, killAt:null, wt:0, wx:0, wy:0, mv:false, seek:false, wave:Math.random()*6 });
   m.start = m.npcs.length; m.aliveStart = S.aliveTarget;
   placeDisk(); positionDisk();
 }
 function placeDisk(){
   const m = S.m; m.npcs = m.npcs.filter(n => !n.dead);
   for (const n of m.npcs){ n.st = 'disk'; n.inRoom = false; n.grp = null; n.killAt = null; n.r = rnd(12, 54); n.a = Math.random()*Math.PI*2; }
-  m.me.r = 34; m.me.a = Math.PI/2; m.me.inRoom = false; m.followers = []; m.groups = [];
-  m.doors.forEach(d => d.state = 'shut');
+  m.me.r = 34; m.me.a = Math.PI/2 - m.spin; m.me.inRoom = false; m.followers = []; m.groups = []; m.pops = [];
+  m.doors.forEach(d => { d.state = 'shut'; d.n = 0; });
+  ptr.on = false; ptr.follow = null;
 }
 function positionDisk(){
   const m = S.m;
   for (const n of m.npcs){ n.x = MC.x + Math.cos(n.a + m.spin)*n.r; n.y = MC.y + Math.sin(n.a + m.spin)*n.r; }
-  m.me.x = MC.x + Math.cos(m.me.a + m.spin)*m.me.r; m.me.y = MC.y + Math.sin(m.me.a + m.spin)*m.me.r;
 }
+function placeMeOnDisk(){ const m = S.m, me = m.me; me.x = MC.x + Math.cos(me.a + m.spin)*me.r; me.y = MC.y + Math.sin(me.a + m.spin)*me.r; }
 function beginMingle(){ show(null); S.scene = 'mingle'; startSong(); setPad(); }
 function startSong(){
-  const m = S.m; m.phase = 'music'; m.t = 0; m.dur = rnd(4.5, 7); m.done = false; m.needT = 0;
-  callout(m.song === 0 ? 'ALL ABOARD' : 'SONG 2 OF 2', 'cyan');
+  const m = S.m; m.phase = 'music'; m.t = 0; m.dur = rnd(5, 7.5); m.done = false; m.needT = 0; m.roomsWarned = 99; m.tick = 0;
+  placeMeOnDisk();
+  callout(m.song === 0 ? 'ALL ABOARD · WALK AROUND' : 'SONG 2 OF 2', 'cyan');
 }
 function formGroups(){
   const m = S.m, N = m.N, alive = m.npcs.filter(n => !n.dead);
   alive.sort((a,b) => Math.atan2(a.y - MC.y, a.x - MC.x) - Math.atan2(b.y - MC.y, b.x - MC.x));
-  const freeCount = Math.min(alive.length, Math.max(7, N*2 + 2)), step = alive.length/freeCount;
+  const freeCount = Math.min(alive.length, Math.max(8, N*2 + 3)), step = alive.length/freeCount;
   const free = [], rest = []; let nextF = 0;
   alive.forEach((n,i) => { if (free.length < freeCount && i >= nextF){ free.push(n); nextF += step; } else rest.push(n); });
   m.groups = [];
   const maxGroups = E() ? 7 : 9;   // always leaves a few doors for the player and stragglers
   for (let i = 0; i + N <= rest.length && m.groups.length < maxGroups; i += N){
-    const g2 = { mem: rest.slice(i, i + N), need:N, delay:rnd(.3, 3), state:'go', door:null, spd:rnd(36, 54) };
+    const g2 = { mem: rest.slice(i, i + N), need:N, delay:rnd(.3, 3), state:'go', door:null, spd:rnd(36, 54), col: GCOLS[m.groups.length % GCOLS.length] };
     if (Math.random() < .3) free.push(g2.mem.pop());
     g2.mem.forEach(n => { n.st = 'grp'; n.grp = g2; });
     m.groups.push(g2);
   }
-  for (const n of alive) if (n.st === 'disk'){ n.st = 'free'; n.grp = null; }
-  for (const n of free){ n.st = 'free'; n.grp = null; n.wt = 0; }
+  for (const n of alive) if (n.st === 'disk') free.push(n);
+  for (const n of free){ n.st = 'free'; n.grp = null; n.wt = 0; n.seek = Math.random() < .45; }
 }
+const openDoors = () => S.m.doors.filter(d => d.state === 'open').length;
 function nearestOpenDoor(x, y){
   let best = null, bd = 1e9;
   for (const d of S.m.doors){ if (d.state !== 'open') continue; const dd = Math.hypot(d.ex - x, d.ey - y); if (dd < bd){ bd = dd; best = d; } }
   return best;
 }
+function slamDoor(d, n, col){
+  d.state = 'taken'; d.slam = .35; d.n = n; d.col = col;
+  tone(170, .1, 'square', .09); noise(.08, .12, 600);
+  const left = openDoors();
+  if (left <= 3 && left < S.m.roomsWarned && !S.m.me.inRoom){ S.m.roomsWarned = left; callout(left === 0 ? 'NO ROOMS LEFT!' : left + (left === 1 ? ' ROOM LEFT!' : ' ROOMS LEFT!'), 'red'); }
+}
 function updGroups(dt){
   const m = S.m;
   for (const gr of m.groups){
     if (gr.state !== 'go') continue;
-    for (let i = 1; i < gr.mem.length; i++) follow(gr.mem[i], gr.mem[i-1], 7, gr.spd*1.25, dt);
+    for (let i = 1; i < gr.mem.length; i++) follow(gr.mem[i], gr.mem[i-1], 10, gr.spd*1.25, dt);
     if (gr.delay > 0){ gr.delay -= dt; continue; }
     const L = gr.mem[0];
     if (gr.mem.length < gr.need){
       let best = null, bd = 1e9;
       for (const n of m.npcs) if (n.st === 'free' && !n.dead){ const d = Math.hypot(n.x - L.x, n.y - L.y); if (d < bd){ bd = d; best = n; } }
-      if (best){ moveTo(L, best.x, best.y, gr.spd, dt); if (bd < 8){ best.st = 'grp'; best.grp = gr; gr.mem.push(best); } }
+      if (best){ moveTo(L, best.x, best.y, gr.spd, dt); if (bd < 11){ best.st = 'grp'; best.grp = gr; gr.mem.push(best); if (ptr.follow === best){ ptr.follow = null; ptr.on = false; callout('TAKEN!', 'red'); } } }
     } else {
       if (!gr.door || gr.door.state !== 'open') gr.door = nearestOpenDoor(L.x, L.y);
       if (gr.door){
         moveTo(L, gr.door.ex, gr.door.ey, gr.spd, dt);
-        const together = gr.mem.every((n,i) => Math.hypot(n.x - L.x, n.y - L.y) < 9 + i*8);
+        const together = gr.mem.every((n,i) => Math.hypot(n.x - L.x, n.y - L.y) < 12 + i*11);
         if (together && Math.hypot(L.x - gr.door.ex, L.y - gr.door.ey) < 6){
-          gr.door.state = 'taken'; gr.state = 'in'; gr.mem.forEach(n => { n.inRoom = true; n.st = 'room'; }); tone(420, .05, 'square', .05);
+          slamDoor(gr.door, gr.mem.length, gr.col); gr.state = 'in'; gr.mem.forEach(n => { n.inRoom = true; n.st = 'room'; });
         }
       }
     }
   }
 }
+// bodies shove each other so the scramble feels physical
+function crowdPush(list){
+  for (let i = 0; i < list.length; i++){
+    const a = list[i];
+    for (let j = i + 1; j < list.length; j++){
+      const b = list[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx*dx + dy*dy;
+      if (d2 > 0 && d2 < 81){ const d = Math.sqrt(d2), k = (9 - d)/2, nx = dx/d, ny = dy/d;
+        a.x -= nx*k; a.y -= ny*k; b.x += nx*k; b.y += ny*k; }
+    }
+  }
+}
+// tap a waving player to chase them, tap near a door to run to it
+function mingleTap(x, y){
+  const m = S.m; if (!m || m.phase !== 'scramble' || m.me.inRoom) { ptr.follow = null; return; }
+  let best = null, bd = 16;
+  for (const n of m.npcs) if (n.st === 'free' && !n.dead){ const d = Math.hypot(n.x - x, (n.y - 10) - y); if (d < bd){ bd = d; best = n; } }
+  if (best && m.followers.length < m.N - 1){ ptr.follow = best; return; }
+  ptr.follow = null;
+  for (const d of m.doors){ if (d.state === 'open' && Math.abs(d.x - x) < 14 && Math.abs((d.top ? 16 : 222) - y) < 22){ ptr.x = d.ex; ptr.y = d.ey; return; } }
+}
 function updMingle(dt){
   const m = S.m; if (!m) return;
   for (const n of m.npcs) if (n.dead) n.deadT += dt;
+  for (const d of m.doors) d.slam = Math.max(0, d.slam - dt);
+  for (let i = m.pops.length - 1; i >= 0; i--){ m.pops[i].t += dt; if (m.pops[i].t > .9) m.pops.splice(i, 1); }
   if (m.me.dead) m.me.deadT = (m.me.deadT||0) + dt;
-  if (S.scene !== 'mingle') return;
+  if (S.scene !== 'mingle'){ syncMhud(); return; }
   m.t += dt; const me = m.me;
   if (m.phase === 'music'){
     m.spin += dt*.9; m.beatT -= dt;
     if (m.beatT <= 0){ m.beatT = .17; const f = CAROUSEL[m.noteI % CAROUSEL.length]; tone(f, .14, 'square', .05); if (m.noteI % 4 === 0) tone(f/4, .3, 'triangle', .08); m.noteI++; }
     positionDisk(); for (const n of m.npcs) n.anim += dt*2;
+    // you ride the carousel but can walk around on it
+    placeMeOnDisk();
+    const dir = moveDir(me.x, me.y);
+    me.mv = !!(dir.x || dir.y); if (me.mv) me.anim += dt*6;
+    let nx = me.x + dir.x*55*dt, ny = me.y + dir.y*55*dt;
+    const r = Math.hypot(nx - MC.x, ny - MC.y);
+    if (r > MC.R - 7){ nx = MC.x + (nx - MC.x)/r*(MC.R - 7); ny = MC.y + (ny - MC.y)/r*(MC.R - 7); }
+    me.x = nx; me.y = ny;
+    for (const n of m.npcs){ const dx = me.x - n.x, dy = me.y - n.y, d = Math.hypot(dx, dy); if (d > 0 && d < 9){ me.x += dx/d*(9 - d); me.y += dy/d*(9 - d); } }
+    me.r = Math.min(MC.R - 7, Math.hypot(me.x - MC.x, me.y - MC.y)); me.a = Math.atan2(me.y - MC.y, me.x - MC.x) - m.spin;
     if (m.t >= m.dur){
       m.phase = 'call'; m.t = 0; const opts = [2,3,4].filter(x => x !== m.N); m.N = opts[Math.random()*opts.length|0];
-      tone(300, .25, 'sawtooth', .12, 0, .3); callout('GROUPS OF ' + m.N + '!', 'sand');
+      tone(300, .25, 'sawtooth', .12, 0, .3); callout('GROUPS OF ' + m.N + '!', 'sand'); doShake(.2);
       for (let i = 0; i < m.N; i++) tone(990, .08, 'square', .1, .35 + i*.22);
     }
   } else if (m.phase === 'call'){
-    if (m.t >= 1.4){ m.phase = 'scramble'; m.t = 0; m.lockT = 13; formGroups(); m.doors.forEach(d => d.state = 'open'); SFX.go(); setPad(); }
+    if (m.t >= 1.4){ m.phase = 'scramble'; m.t = 0; m.lockT = 13; formGroups(); m.doors.forEach(d => d.state = 'open'); SFX.go(); setPad(); callout('GO! GRAB ' + (m.N - 1) + ' + FIND A ROOM', 'lime'); }
   } else if (m.phase === 'scramble'){
     m.lockT = Math.max(0, m.lockT - dt); m.needT = Math.max(0, m.needT - dt);
+    const sec = Math.ceil(m.lockT);
+    if (sec <= 3 && sec !== m.tick && sec > 0){ m.tick = sec; tone(1200, .07, 'square', .1); if (sec === 3 && !me.inRoom) callout('3 SECONDS!', 'red'); }
     if (!me.inRoom){
+      if (ptr.follow){ if (ptr.follow.st !== 'free' || ptr.follow.dead) ptr.follow = null; else { ptr.on = true; ptr.x = ptr.follow.x; ptr.y = ptr.follow.y; } }
       const dir = moveDir(me.x, me.y);
-      me.x = clamp(me.x + dir.x*74*dt, 8, 248); me.y = clamp(me.y + dir.y*74*dt, 30, 210); me.mv = !!(dir.x || dir.y); if (me.mv) me.anim += dt*6;
+      me.x = clamp(me.x + dir.x*74*dt, 8, 248); me.y = clamp(me.y + dir.y*74*dt, 30, 210); me.mv = !!(dir.x || dir.y);
+      if (me.mv){ me.anim += dt*6; m.dustT -= dt; if (m.dustT <= 0){ m.dustT = .09; parts.push({ x:me.x + rnd(-2,2), y:me.y, vx:rnd(-8,8), vy:rnd(-14,-4), life:.3, c:'#6a6a6a', s:1 }); } }
       if (m.followers.length < m.N - 1) for (const n of m.npcs){
-        if (n.st === 'free' && !n.dead && Math.hypot(n.x - me.x, n.y - me.y) < 10){
-          n.st = 'mine'; m.followers.push(n); tone(700 + m.followers.length*140, .06, 'square', .1);
-          callout(m.followers.length === m.N - 1 ? 'GROUP READY · FIND A DOOR' : 'GOT ONE · ' + (m.N - 1 - m.followers.length) + ' MORE', m.followers.length === m.N - 1 ? 'lime' : 'sand');
+        if (n.st === 'free' && !n.dead && Math.hypot(n.x - me.x, n.y - me.y) < 13){
+          n.st = 'mine'; m.followers.push(n); if (ptr.follow === n){ ptr.follow = null; ptr.on = false; }
+          tone(700 + m.followers.length*140, .06, 'square', .1); tone(1050 + m.followers.length*140, .06, 'square', .08, .06);
+          m.pops.push({ x:n.x, y:n.y - 24, t:0 }); burst(n.x, n.y - 12, 6, [C.lime, C.white], 40);
+          const need = m.N - 1 - m.followers.length;
+          callout(need ? 'GOT ONE! ' + need + ' MORE' : 'GROUP READY! TAP A GREEN DOOR', need ? 'sand' : 'lime');
           break;
         }
       }
       for (const d of m.doors){
-        if (d.state !== 'open' || Math.hypot(d.ex - me.x, d.ey - me.y) > 11) continue;
+        if (d.state !== 'open' || Math.hypot(d.ex - me.x, d.ey - me.y) > 13) continue;
         if (m.followers.length === m.N - 1){
           const secs = Math.ceil(m.lockT);
-          d.state = 'taken'; me.inRoom = true; m.followers.forEach(n => { n.inRoom = true; n.st = 'room'; });
-          m.bonus += secs; callout('SAFE! +' + secs + 's BRIDGE TIME', 'lime'); SFX.ok();
-        } else if (m.needT <= 0){ m.needT = 1; callout('NEED ' + (m.N - 1 - m.followers.length) + ' MORE', 'red'); SFX.blip(); }
+          slamDoor(d, m.N, C.lime); me.inRoom = true; ptr.on = false; ptr.follow = null;
+          m.followers.forEach(n => { n.inRoom = true; n.st = 'room'; });
+          m.bonus += secs; callout('SAFE! +' + secs + 's BRIDGE TIME', 'lime'); SFX.ok(); doShake(.15);
+        } else if (m.needT <= 0){ m.needT = 1; callout('NEED ' + (m.N - 1 - m.followers.length) + ' MORE!', 'red'); SFX.blip(); }
         break;
       }
     }
-    for (let i = 0; i < m.followers.length; i++) if (!m.followers[i].inRoom) follow(m.followers[i], i ? m.followers[i-1] : me, 7, 100, dt);
+    for (let i = 0; i < m.followers.length; i++) if (!m.followers[i].inRoom) follow(m.followers[i], i ? m.followers[i-1] : me, 10, 100, dt);
     updGroups(dt);
+    // free players: some run toward any group that still has room (including yours), the rest mill about
     for (const n of m.npcs){
       if (n.st !== 'free' || n.dead) continue;
-      n.wt -= dt; if (n.wt <= 0){ n.wt = rnd(.8, 2); n.wx = clamp(n.x + rnd(-30, 30), 14, 242); n.wy = clamp(n.y + rnd(-30, 30), 36, 204); }
-      moveTo(n, n.wx, n.wy, 16, dt);
+      n.wave += dt*8;
+      let target = null;
+      if (n.seek){
+        let bd = 70;
+        if (!me.inRoom && m.followers.length < m.N - 1){ const d = Math.hypot(me.x - n.x, me.y - n.y); if (d < bd){ bd = d; target = me; } }
+        for (const gr of m.groups){ if (gr.state !== 'go' || gr.mem.length >= gr.need) continue; const L = gr.mem[0], d = Math.hypot(L.x - n.x, L.y - n.y); if (d < bd){ bd = d; target = L; } }
+      }
+      if (target) moveTo(n, target.x, target.y, 20, dt);
+      else { n.wt -= dt; if (n.wt <= 0){ n.wt = rnd(.8, 2); n.wx = clamp(n.x + rnd(-30, 30), 14, 242); n.wy = clamp(n.y + rnd(-30, 30), 36, 204); } moveTo(n, n.wx, n.wy, 16, dt); }
     }
+    const bodies = m.npcs.filter(n => !n.inRoom && !n.dead); if (!me.inRoom) bodies.push(me);
+    crowdPush(bodies);
+    for (const b of bodies){ b.x = clamp(b.x, 8, 248); b.y = clamp(b.y, 30, 210); }
     if (m.lockT <= 0) lockMingle();
   } else if (m.phase === 'resolve'){
     for (const n of m.npcs) if (!n.dead && n.killAt != null && m.t >= n.killAt){
-      n.dead = true; n.deadT = 0; n.killAt = null; fireAt(n.x, n.y - 6); burst(n.x, n.y - 6, 7, [C.red, C.plum, C.white]); SFX.zap();
+      n.dead = true; n.deadT = 0; n.killAt = null; fireAt(n.x, n.y - 10); burst(n.x, n.y - 10, 7, [C.red, C.plum, C.white]); SFX.zap();
     }
     if (m.t >= 2.4 && !m.done && !S.over){ m.done = true; afterSong(); }
   }
+  syncMhud();
+}
+function syncMhud(){
+  const m = S.m, el = $('mhud'), on = S.world === 'mingle' && S.scene === 'mingle' && m && (m.phase === 'call' || m.phase === 'scramble');
+  if (el.hidden === on) el.hidden = !on;
+  if (!on) return;
+  const have = m.me.inRoom ? m.N : m.followers.length + 1, rooms = openDoors();
+  const key = m.N + '|' + have + '|' + rooms + '|' + m.me.inRoom + '|' + m.phase;
+  if (el.dataset.k === key) return; el.dataset.k = key;
+  $('mhN').textContent = m.N;
+  $('mhPips').innerHTML = Array.from({length:m.N}, (_,i) => `<i class="${i < have ? 'on' : ''}"></i>`).join('');
+  $('mhRooms').textContent = m.me.inRoom ? 'SAFE INSIDE' : m.phase === 'call' ? 'GET READY' : rooms + (rooms === 1 ? ' ROOM LEFT' : ' ROOMS LEFT');
+  el.classList.toggle('danger', !m.me.inRoom && m.phase === 'scramble' && rooms <= 3);
 }
 function lockMingle(){
-  const m = S.m; m.phase = 'resolve'; m.t = 0; tone(120, .4, 'square', .14);
-  m.doors.forEach(d => { if (d.state === 'open') d.state = 'locked'; });
+  const m = S.m; m.phase = 'resolve'; m.t = 0; tone(120, .4, 'square', .14); noise(.3, .2, 300);
+  m.doors.forEach(d => { if (d.state === 'open'){ d.state = 'locked'; d.slam = .35; } });
   for (const n of m.npcs) if (!n.dead && !n.inRoom) n.killAt = rnd(.2, 1.6);
   if (!m.me.inRoom){
-    const have = m.followers.length + 1; S.over = true; ptr.on = false;
+    const have = m.followers.length + 1; S.over = true; ptr.on = false; ptr.follow = null;
     S.death = { round:3, why: have < m.N ? `The doors locked. You needed a group of ${m.N} and had ${have}.` : 'The doors locked before you got your group into a room.' };
-    later(.3, () => { m.me.dead = true; fireAt(m.me.x, m.me.y - 6, true); burst(m.me.x, m.me.y - 6, 16, [C.red, C.plum, C.white], 80); SFX.zap(); flash = .6; flashCol = C.red; doShake(.4); callout('ELIMINATED', 'red'); });
+    later(.3, () => { m.me.dead = true; fireAt(m.me.x, m.me.y - 10, true); burst(m.me.x, m.me.y - 10, 16, [C.red, C.plum, C.white], 80); SFX.zap(); flash = .6; flashCol = C.red; doShake(.4); callout('ELIMINATED', 'red'); });
     later(.8, SFX.lose); later(2.6, () => endRun(false));
   }
   setPad();
@@ -1232,50 +1349,71 @@ function afterSong(){
   else { placeDisk(); startSong(); }
 }
 function showClearMingle(){
-  const m = S.m; S.scene = 'card';
+  const m = S.m; S.scene = 'card'; $('mhud').hidden = true;
   $('cK').textContent = 'ROUND 3 CLEAR'; $('cT').innerHTML = 'STILL<br>STANDING';
   $('cR').innerHTML = `<li>You made it into a room in both songs.</li>` +
     `<li>${m.bonus ? `<b style="color:var(--lime)">Quick feet:</b> +${m.bonus}s on the bridge clock.` : 'Get into rooms faster next time to add bridge time.'}</li>` +
     `<li>${fmt(S.aliveTarget)} players left · prize pot ${fmt(pot(S.aliveTarget))}</li>`;
   $('cBtn').textContent = 'TO THE BRIDGE'; cardNext = showPick; show('ovCard'); setPad();
 }
+function wavingPerson(n, t){
+  // a free player: arms up, waving, with a blinking "?" and bright corner brackets
+  person(n.x, n.y, { moving:n.mv, anim:n.anim });
+  const x = Math.round(n.x), y = Math.round(n.y), w = Math.sin(n.wave) > 0;
+  // both arms up above the head, waving
+  R(x - 6, y - 21 - (w ? 2 : 0), 1, 7, '#2b7e70'); R(x + 6, y - 21 - (w ? 0 : 2), 1, 7, '#2b7e70');
+  R(x - 6, y - 22 - (w ? 2 : 0), 1, 1, C.orange); R(x + 6, y - 22 - (w ? 0 : 2), 1, 1, C.orange);
+  if ((t*3|0) % 2) ptext('?', x - 1, y - 29, C.white);
+  const c = C.white; R(x - 8, y - 21, 2, 1, c); R(x - 8, y - 21, 1, 2, c); R(x + 7, y - 21, 2, 1, c); R(x + 8, y - 21, 1, 2, c);
+  R(x - 8, y + 2, 2, 1, c); R(x - 8, y + 1, 1, 2, c); R(x + 7, y + 2, 2, 1, c); R(x + 8, y + 1, 1, 2, c);
+}
 function drawMingle(){
-  const m = S.m, t = performance.now()/1000;
+  const m = S.m, t = performance.now()/1000, hurry = m.phase === 'scramble' && m.lockT <= 3;
   for (let y = 24; y < 216; y += 16) for (let x = 0; x < W; x += 16) R(x, y, 16, 16, ((x + y)/16) % 2 ? '#1a1a1a' : C.navy);
-  // carousel
+  // carousel with chasing rim lights while the music plays
   disk(MC.x, MC.y, MC.R + 2, C.ink); disk(MC.x, MC.y, MC.R, C.plum); disk(MC.x, MC.y, MC.R - 5, C.red); disk(MC.x, MC.y, MC.R - 26, '#c9566a');
   for (let k = 0; k < 8; k++){ const a = m.spin + k*Math.PI/4; pline(MC.x, MC.y, MC.x + Math.cos(a)*(MC.R - 6), MC.y + Math.sin(a)*(MC.R - 6), C.sand, 2); }
-  for (let k = 0; k < 16; k++){ const a = m.spin + k*Math.PI/8; R(MC.x + Math.cos(a)*(MC.R - 2) - 1, MC.y + Math.sin(a)*(MC.R - 2) - 1, 2, 2, (k % 2) ? C.sand : C.white); }
+  const lit = m.phase === 'music' ? (t*10|0) % 16 : -1;
+  for (let k = 0; k < 16; k++){ const a = m.spin + k*Math.PI/8, on = lit >= 0 && (k === lit || k === (lit + 8) % 16);
+    R(MC.x + Math.cos(a)*(MC.R - 2) - 1, MC.y + Math.sin(a)*(MC.R - 2) - 1, 2, 2, on ? C.white : (k % 2) ? C.sand : '#8a3040'); }
   disk(MC.x, MC.y, 8, C.sand); disk(MC.x, MC.y, 4, C.orange);
   // walls and doors
   R(0, 0, W, 24, C.dark); R(0, 23, W, 1, C.silver); R(0, 216, W, 24, C.dark); R(0, 216, W, 1, C.silver);
   R(0, 24, 3, 192, C.dark); R(253, 24, 3, 192, C.dark);
   for (const d of m.doors){
-    const c = d.state === 'open' ? C.lime : d.state === 'taken' ? C.red : d.state === 'locked' ? C.plum : C.slate;
-    R(d.x - 10, d.y - 1, 20, 16, C.ink); R(d.x - 9, d.y, 18, 14, c);
-    R(d.x - 7, d.y + 2, 14, 10, d.state === 'open' ? '#000' : C.ink);
-    if (d.state === 'open' && (t*4|0) % 2) R(d.x - 7, d.top ? d.y + 11 : d.y + 2, 14, 1, C.lime);
+    const open = d.state === 'open', blink = (t*6|0) % 2;
+    const frame = open ? (hurry && blink ? C.red : C.lime) : d.state === 'taken' ? d.col : d.state === 'locked' ? '#3a3a3a' : C.slate;
+    const sy = d.slam > 0 ? Math.round(Math.sin(d.slam*40)*1.5) : 0;
+    R(d.x - 11, d.y - 1 + sy, 22, 18, C.ink); R(d.x - 10, d.y + sy, 20, 16, frame);
+    R(d.x - 8, d.y + 2 + sy, 16, 12, open ? '#000' : '#141414');
+    if (open){
+      g.globalAlpha = .18 + (blink ? .08 : 0); R(d.x - 12, d.top ? d.y + 16 : d.y - 8, 24, 8, frame); g.globalAlpha = 1;
+      const ay = d.top ? d.y + 9 : d.y + 4, s = d.top ? -1 : 1;
+      R(d.x - 3, ay, 7, 1, frame); R(d.x - 2, ay + s, 5, 1, frame); R(d.x - 1, ay + 2*s, 3, 1, frame);
+    } else if (d.state === 'taken'){
+      for (let i = 0; i < d.n; i++) R(d.x - d.n*2 + i*4 + 1, d.y + 6 + sy, 2, 3, d.col);
+    } else if (d.state === 'locked'){ R(d.x - 4, d.y + 7, 8, 2, '#3a3a3a'); }
   }
+  // hand-holding links: other groups in their color, yours in lime
+  for (const gr of m.groups){ if (gr.state !== 'go') continue; for (let i = 1; i < gr.mem.length; i++){ const a = gr.mem[i-1], b = gr.mem[i]; if (!a.dead && !b.dead) pline(a.x, a.y - 9, b.x, b.y - 9, gr.col); } }
+  if (!m.me.inRoom && !m.me.dead){ let prev = m.me; for (const f of m.followers){ if (f.inRoom || f.dead) break; pline(prev.x, prev.y - 9, f.x, f.y - 9, C.lime); prev = f; } }
   // people
   const ppl = m.npcs.filter(n => !n.inRoom || n.dead).map(n => ({ n, y:n.y }));
   if (!m.me.inRoom) ppl.push({ n:null, y:m.me.y });
   ppl.sort((a,b) => a.y - b.y);
-  if (!m.me.inRoom && !m.me.dead) youRing(m.me.x, m.me.y, t);
   for (const e of ppl){
     const a = e.n || m.me;
     if (a.dead){ if (a.deadT < .12) person(a.x, a.y, { flash:true }); else corpse(a.x, a.y, a.deadT); continue; }
-    person(a.x, a.y, { moving: e.n ? a.mv || m.phase === 'music' : a.mv, anim:a.anim, me: !e.n });
-    if (e.n && a.st === 'mine') R(a.x - 1, a.y - 16, 3, 2, C.lime);
+    if (e.n && a.st === 'free' && m.phase === 'scramble'){ wavingPerson(a, t); continue; }
+    const suit = !e.n ? C.teal : a.grp ? a.grp.col : a.st === 'mine' ? C.teal : '#2b7e70';
+    person(a.x, a.y, { moving: e.n ? a.mv || m.phase === 'music' : a.mv, anim:a.anim, me: !e.n || a.st === 'mine', suit });
+    if (e.n && a.st === 'mine') R(a.x - 1, a.y - 24, 3, 2, C.lime);
   }
+  for (const p of m.pops){ const k = p.t/.9; g.globalAlpha = 1 - k; ptext('+1', Math.round(p.x) - 3, Math.round(p.y - k*10), C.lime); g.globalAlpha = 1; }
   drawGuns(m.phase === 'resolve');
   if (!m.me.inRoom && !m.me.dead) youMarker(m.me.x, m.me.y, t);
-  // group size badge: the number, and a pip per member you have
-  if (m.phase === 'call' || m.phase === 'scramble'){
-    const have = m.me.inRoom ? m.N : m.followers.length + 1;
-    R(4, 27, 14 + m.N*7, 17, C.ink); ptext(String(m.N), 7, 30, C.sand, 2);
-    for (let i = 0; i < m.N; i++) R(17 + i*7, 32, 5, 7, i < have ? C.lime : C.dark);
-  }
-  if (m.phase === 'call'){ const s = String(m.N); ptext(s, 128 - pwidth(s, 8)/2, 90, C.ink, 8); ptext(s, 126 - pwidth(s, 8)/2, 88, C.white, 8); }
+  if (m.phase === 'call'){ const s = String(m.N); ptext(s, 128 - pwidth(s, 8)/2 + 2, 92, C.ink, 8); ptext(s, 128 - pwidth(s, 8)/2, 90, C.white, 8); }
+  if (hurry && !m.me.inRoom){ g.globalAlpha = .08 + ((t*6|0) % 2)*.06; R(0, 0, W, H, C.red); g.globalAlpha = 1; }
 }
 
 /* ---------- ROUND 5 · THE FINAL DUEL ---------- */
@@ -1364,9 +1502,13 @@ function updDuel(dt){
     const vx = me.x - HOME.x, vy = me.y - HOME.y, l = Math.hypot(vx, vy) || 1, k = Math.min(40, l*.6);
     const tx = HOME.x + vx/l*k, ty = HOME.y + vy/l*k, ddx = tx - ai.x, ddy = ty - ai.y, dl = Math.hypot(ddx, ddy);
     if (dl > 2){ ax = ddx/dl; ay = ddy/dl; }
-    if (Math.hypot(me.x - ai.x, me.y - ai.y) < 50 && ai.cd <= 0 && me.stag <= 0){ ai.state = 'windup'; ai.st = 0; tone(300, .12, 'square', .08); }
+    if (Math.hypot(me.x - ai.x, me.y - ai.y) < 50 && ai.cd <= 0 && me.stag <= 0){
+      // lock the charge direction at the START of the wind-up, so a sidestep during the flash dodges it
+      const ddx = me.x - ai.x, ddy = me.y - ai.y, dl = Math.hypot(ddx, ddy) || 1; ai.dx = ddx/dl; ai.dy = ddy/dl;
+      ai.state = 'windup'; ai.st = 0; tone(300, .12, 'square', .08);
+    }
   } else if (ai.state === 'windup'){
-    if (ai.st >= .5 + (E() ? .2 : 0) - .18*hard){ const ddx = me.x - ai.x, ddy = me.y - ai.y, dl = Math.hypot(ddx, ddy) || 1; ai.vx = ddx/dl*178; ai.vy = ddy/dl*178; ai.dashT = .3; ai.state = 'dash'; ai.st = 0; noise(.15, .12, 900); }
+    if (ai.st >= .5 + (E() ? .2 : 0) - .18*hard){ ai.vx = ai.dx*178; ai.vy = ai.dy*178; ai.dashT = .3; ai.state = 'dash'; ai.st = 0; ai.brake = Math.random() < (E() ? .35 : .65); noise(.15, .12, 900); }
   } else if (ai.state === 'dash'){
     if (ai.dashT <= 0){ ai.state = 'recover'; ai.st = 0; }
   } else if (ai.state === 'recover'){
@@ -1374,22 +1516,22 @@ function updDuel(dt){
   } else if (ai.state === 'stagger'){
     if (ai.stag <= 0){ ai.state = 'recover'; ai.st = .3; }
   }
-  stepBody(ai, ax, ay, (E() ? 40 : 48) + 18*hard, dt, ai.state !== 'dash' && ai.state !== 'stagger');
+  stepBody(ai, ax, ay, (E() ? 40 : 48) + 18*hard, dt, (ai.state !== 'dash' || ai.brake) && ai.state !== 'stagger');
   if (me.dashT > 0 || ai.state === 'dash'){ d.trail.push({ x: me.dashT > 0 ? me.x : ai.x, y: me.dashT > 0 ? me.y : ai.y, life:.25, c: me.dashT > 0 ? C.lime : C.red }); }
   for (let i = d.trail.length - 1; i >= 0; i--){ d.trail[i].life -= dt; if (d.trail[i].life <= 0) d.trail.splice(i, 1); }
   // collisions: the harder pusher wins
   const dx = ai.x - me.x, dy = ai.y - me.y, dist = Math.hypot(dx, dy);
-  if (dist < 10 && dist > .01 && d.hitCd <= 0){
+  if (dist < 11 && dist > .01 && d.hitCd <= 0){
     const nx = dx/dist, ny = dy/dist;
     const myP = me.vx*nx + me.vy*ny + (me.dashT > 0 ? 60 : 0) + (ai.state === 'recover' ? 40 : 0);
-    const aiP = -(ai.vx*nx + ai.vy*ny) + (ai.state === 'dash' ? 60 : 0) - (ai.state === 'recover' ? 40 : 0);
+    const aiP = -(ai.vx*nx + ai.vy*ny) + (ai.state === 'dash' ? 60 : 0) - (ai.state === 'recover' ? 40 : 0) - (ai.state === 'guard' ? 30 : 0);   // guarding blocks, only a charge shoves
     if (myP > aiP + 4){
-      const f = me.dashT > 0 ? 180 : 95; ai.vx = nx*f; ai.vy = ny*f; ai.stag = .55; ai.dashT = 0; ai.state = 'stagger';
+      const f = me.dashT > 0 ? 150 : 90; ai.vx = nx*f; ai.vy = ny*f; ai.stag = .55; ai.dashT = 0; ai.state = 'stagger';
       me.vx *= .3; me.vy *= .3; burst((me.x + ai.x)/2, (me.y + ai.y)/2 - 6, 8, [C.white, C.sand]); tone(180, .12, 'square', .12); if (me.dashT > 0) callout('SHOVE!', 'lime');
     } else if (aiP > myP + 4){
-      const f = ai.state === 'dash' ? 125 : 75; me.vx = -nx*f; me.vy = -ny*f; me.stag = .45; me.dashT = 0;
+      const f = ai.state === 'dash' ? 110 : 70; me.vx = -nx*f; me.vy = -ny*f; me.stag = .45; me.dashT = 0;
       ai.vx *= .3; ai.vy *= .3; ai.dashT = 0; ai.state = 'recover'; ai.st = 0; doShake(.2); tone(120, .15, 'square', .12);
-    } else { me.x -= nx*2; me.y -= ny*2; ai.x += nx*2; ai.y += ny*2; }
+    } else { me.x -= nx*3; me.y -= ny*3; ai.x += nx*2; ai.y += ny*2; me.vx *= .5; me.vy *= .5; }
     d.hitCd = .25;
   }
   // outcomes
@@ -1426,9 +1568,12 @@ function drawDuel(){
     person(b.x, b.y + 4, { moving: Math.hypot(b.vx, b.vy) > 8, anim:b.anim, me:e.me, flash:fl, suit: e.me ? C.teal : '#2b7e70' });
   }
   // rival tags: number, charge warning, dizzy stars
-  ptext(pad3(S.rivalNo), Math.round(ai.x) - 5, Math.round(ai.y) - 20, C.red);
-  if (ai.state === 'windup') ptext('!', Math.round(ai.x) - 1, Math.round(ai.y) - 27, C.red, 2);
-  if (ai.state === 'recover' || ai.state === 'stagger') for (let k = 0; k < 3; k++){ const a = t*8 + k*2.1; R(ai.x + Math.cos(a)*6, ai.y - 12 + Math.sin(a)*2, 2, 2, C.sand); }
+  ptext(pad3(S.rivalNo), Math.round(ai.x) - 5, Math.round(ai.y) - 29, C.red);
+  if (ai.state === 'windup'){
+    ptext('!', Math.round(ai.x) - 1, Math.round(ai.y) - 38, C.red, 2);
+    if ((t*10|0) % 2) pline(ai.x + ai.dx*8, ai.y - 6 + ai.dy*8, ai.x + ai.dx*58, ai.y - 6 + ai.dy*58, C.red, 3);   // where he'll charge
+  }
+  if (ai.state === 'recover' || ai.state === 'stagger') for (let k = 0; k < 3; k++){ const a = t*8 + k*2.1; R(ai.x + Math.cos(a)*7, ai.y - 20 + Math.sin(a)*2, 2, 2, C.sand); }
   youMarker(me.x, me.y + 4, t);
   // dash cooldown under me
   R(me.x - 7, me.y + 7, 14, 2, C.ink); R(me.x - 7, me.y + 7, Math.round(14*(1 - me.cd/d.dashCd)), 2, me.cd > 0 ? C.slate : C.lime);
@@ -1496,22 +1641,45 @@ function renderRecords(){
 }
 
 /* ---------- drawing ---------- */
+const SHADES = {};
+function shade(hex){   // darker tone of a suit colour, for legs and trim
+  if (SHADES[hex]) return SHADES[hex];
+  const n = parseInt(hex.slice(1), 16), f = .62;
+  const r = ((n >> 16) & 255)*f|0, g2 = ((n >> 8) & 255)*f|0, b = (n & 255)*f|0;
+  return SHADES[hex] = '#' + ((1 << 24) | (r << 16) | (g2 << 8) | b).toString(16).slice(1);
+}
+// Player seen from behind: about 11 x 20 px. Feet at (x, y).
 function person(x, y, o){
   x = Math.round(x); y = Math.round(y);
-  const fl = o.flash, suit = fl ? C.white : (o.suit || C.teal), hi = fl ? C.white : (o.me ? C.lime : C.green), hair = fl ? C.white : C.ink;
+  const fl = o.flash, WH = C.white;
+  const suit = fl ? WH : (o.suit || C.teal), dk = fl ? WH : shade(o.suit || C.teal), hi = fl ? WH : (o.me ? C.lime : C.green);
+  const hair = fl ? WH : C.ink, skin = fl ? WH : C.orange;
   const f = ((o.anim||0)*1.8|0) % 2, mv = o.moving;
-  R(x-3, y, 7, 1, 'rgba(13,14,22,.45)');
-  R(x-2, y-3 + (mv && f ? -1 : 0), 2, 3, C.ink); R(x+1, y-3 + (mv && !f ? -1 : 0), 2, 3, C.ink);
-  R(x-3, y-8, 7, 5, suit); R(x-3, y-8, 1, 5, hi);
-  R(x-1, y-7, 3, 2, fl ? C.white : (o.me ? C.sand : C.white));
-  const a = mv ? (f ? 1 : -1) : 0;
-  R(x-4, y-8 + a, 1, 4, suit); R(x+4, y-8 - a, 1, 4, suit);
-  R(x-2, y-12, 5, 4, hair); R(x-1, y-9, 3, 1, fl ? C.white : C.orange);
+  R(x-5, y, 11, 1, 'rgba(0,0,0,.5)');
+  // legs and white sneakers; one leg lifts while running
+  const lL = mv && f ? 2 : 0, lR = mv && !f ? 2 : 0;
+  R(x-4, y-6-lL, 3, 5, dk); R(x-4, y-1-lL, 3, 1, WH);
+  R(x+1, y-6-lR, 3, 5, dk); R(x+1, y-1-lR, 3, 1, WH);
+  // tracksuit top
+  R(x-4, y-13, 9, 7, suit); R(x-4, y-13, 1, 7, hi); R(x-4, y-7, 9, 1, dk);
+  // numbered bib on the back
+  R(x-2, y-12, 5, 4, fl ? WH : (o.me ? C.sand : WH));
+  if (!fl){ R(x-1, y-11, 1, 2, C.ink); R(x+1, y-11, 1, 2, C.ink); }
+  // arms swing with each stride
+  const a = mv ? (f ? 2 : -2) : 0, aL = Math.max(0, a), aR = Math.max(0, -a);
+  R(x-5, y-13 + aL, 1, 5, suit); R(x-5, y-8 + aL, 1, 1, skin);
+  R(x+5, y-13 + aR, 1, 5, suit); R(x+5, y-8 + aR, 1, 1, skin);
+  // neck, back of the head, ears
+  R(x-1, y-14, 3, 1, skin);
+  R(x-3, y-19, 7, 5, hair); R(x-2, y-20, 5, 1, hair);
+  R(x-4, y-17, 1, 2, skin); R(x+4, y-17, 1, 2, skin);
 }
 function corpse(x, y, t, suit){
-  x = Math.round(x); y = Math.round(y); const k = Math.min(1, t*1.5);
-  R(x-4, y-1, Math.round(4 + k*9), Math.round(1 + k*2), C.red);
-  R(x-5, y-4, 9, 4, suit || C.teal); R(x-1, y-3, 2, 2, C.white); R(x+4, y-4, 3, 4, C.ink); R(x-7, y-3, 2, 2, C.ink);
+  x = Math.round(x); y = Math.round(y); const k = Math.min(1, t*1.5), s2 = suit || C.teal;
+  R(x-7, y-1, Math.round(6 + k*13), Math.round(1 + k*3), C.red);
+  R(x-7, y-6, 12, 5, s2); R(x-7, y-6, 12, 1, shade(s2)); R(x-3, y-5, 4, 3, C.white);
+  R(x+5, y-7, 5, 6, C.ink); R(x+5, y-3, 2, 1, C.orange);
+  R(x-11, y-5, 4, 2, shade(s2)); R(x-11, y-3, 4, 2, shade(s2)); R(x-12, y-5, 1, 2, C.white); R(x-12, y-3, 1, 2, C.white);
 }
 // Classic retro player marker: a bouncing, outlined down-arrow above the head. No text, no ring.
 function youRing(){}
@@ -1526,7 +1694,7 @@ function arrow(x, tipY, dir){   // dir 1 = points down (tip at bottom), -1 = poi
 function youMarker(x, y, t){
   x = Math.round(x); y = Math.round(y);
   const bob = Math.round(Math.abs(Math.sin(t*5))*3);
-  arrow(x, y - 16 - bob, 1);
+  arrow(x, y - 25 - bob, 1);
 }
 // player is off-screen: arrow pinned to the edge, pointing toward them
 function youEdge(x, dir, t){
@@ -1693,7 +1861,7 @@ function drawR2(){
   }
   if (mine){
     const py = sy(mine.wy) + 4 - (mine.lift || 0);
-    if (py > 36 && py < H + 2) youMarker(mine.x, py, t);
+    if (py > 44 && py < H + 2) youMarker(mine.x, py, t);
     else youEdge(clamp(mine.x, 16, W - 16), py >= H + 2 ? 1 : -1, t);   // off-screen: pin a tag to the edge
   }
   // my-turn arrows
@@ -1780,6 +1948,7 @@ function update(dt){
       $('stamLbl').textContent = ['STOPPED','RUNNING','FAST','FASTER','TOP SPEED'][lvl]; }
   }
   $('sbTime').classList.toggle('low', tl != null && tl <= 10 && tl > 0);
+  const qh = S.scene === 'title'; if ($('quitBtn').hidden !== qh){ $('quitBtn').hidden = qh; if (qh) disarmQuit(); }
 }
 function draw(){
   g.setTransform(1,0,0,1,0,0);
@@ -1820,9 +1989,9 @@ cv.addEventListener('pointerdown', e => {
   if (S.scene === 'r1'){ try { cv.setPointerCapture(e.pointerId); } catch(_){} holdOn('screen'); }
   else if (S.scene === 'r2'){ const r = cv.getBoundingClientRect(); choose(e.clientX - r.left < r.width/2 ? 0 : 1); }
   else if (S.scene === 'tug') tugPull();
-  else if (S.scene === 'mingle' || S.scene === 'duel'){ try { cv.setPointerCapture(e.pointerId); } catch(_){} const p = canvasXY(e); ptr.on = true; ptr.down = true; ptr.x = p.x; ptr.y = p.y; }
+  else if (S.scene === 'mingle' || S.scene === 'duel'){ try { cv.setPointerCapture(e.pointerId); } catch(_){} const p = canvasXY(e); ptr.on = true; ptr.down = true; ptr.x = p.x; ptr.y = p.y; ptr.follow = null; if (S.scene === 'mingle') mingleTap(p.x, p.y); }
 });
-cv.addEventListener('pointermove', e => { if (ptr.down){ const p = canvasXY(e); ptr.x = p.x; ptr.y = p.y; } });
+cv.addEventListener('pointermove', e => { if (ptr.down){ const p = canvasXY(e); if (Math.hypot(p.x - ptr.x, p.y - ptr.y) > 6) ptr.follow = null; if (!ptr.follow){ ptr.x = p.x; ptr.y = p.y; } } });
 // tap a spot and you keep walking there after lifting your finger
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev => cv.addEventListener(ev, () => { holdOff('screen'); ptr.down = false; }));
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -1854,6 +2023,7 @@ addEventListener('keydown', e => {
     if ((k === 't' || k === 'T') && !e.repeat){ tapTest(); return; }
   }
   if ((k === 'm' || k === 'M') && !e.repeat){ toggleSound(); return; }
+  if (k === 'Escape' && !e.repeat){ quitGame(); return; }
   if (k === 'Enter' && !e.repeat){
     const ov = OVS.map(id => $(id)).find(o => !o.hidden);
     if (ov && document.activeElement && ov.contains(document.activeElement) && document.activeElement.tagName === 'BUTTON') return;
@@ -1866,6 +2036,20 @@ document.addEventListener('visibilitychange', () => { if (document.hidden){ rele
 
 $('startBtn').addEventListener('click', () => { audio(); startAt(1); });
 $('menuBtn').addEventListener('click', () => { audio(); newRun(); show('ovTitle'); renderLevels(); });
+// Quit: first tap arms it, second tap (within 3s) abandons the run. Quitting is not a loss.
+let quitArmed = 0;
+function quitGame(){
+  if (!S || S.scene === 'title') return;
+  if (!quitArmed){
+    quitArmed = setTimeout(disarmQuit, 3000);
+    $('quitBtn').classList.add('armed'); $('quitBtn').textContent = 'TAP AGAIN TO QUIT';
+    return;
+  }
+  disarmQuit(); releaseAll(); keys.clear(); ptr.on = false; ptr.down = false;
+  newRun(); show('ovTitle'); renderLevels(); setPad();
+}
+function disarmQuit(){ clearTimeout(quitArmed); quitArmed = 0; $('quitBtn').classList.remove('armed'); $('quitBtn').textContent = 'QUIT GAME'; }
+$('quitBtn').addEventListener('click', () => { audio(); quitGame(); });
 $('cBtn').addEventListener('click', () => { audio(); if (cardNext) cardNext(); });
 $('againBtn').addEventListener('click', () => { audio(); const from = S.startLevel || 1; newRun(); startAt(from); });
 $('shareBtn').addEventListener('click', () => {
@@ -1878,6 +2062,7 @@ $('shareBtn').addEventListener('click', () => {
 function toggleSound(){
   soundOn = !soundOn; store.set('sound', soundOn); audio();
   if (master) master.gain.value = soundOn ? .5 : 0;
+  if (!soundOn){ try { speechSynthesis.cancel(); } catch(e){} }
   $('soundBtn').setAttribute('aria-pressed', soundOn); $('soundBtn').textContent = soundOn ? 'SOUND ON' : 'SOUND OFF';
 }
 $('soundBtn').addEventListener('click', toggleSound);
