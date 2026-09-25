@@ -272,6 +272,31 @@ body{background:#000; background-image:none}
 .gears i.on{background:var(--white)} .gears i.on.top{background:var(--red)}
 .hint{color:var(--label)}
 
+
+/* ===== phones: give the game screen as much room as possible ===== */
+@media (max-width:600px){
+  .app{padding-inline:0; padding-block:0 24px}
+  .top{padding-inline:12px; padding-top:12px}
+  body.playing .brand{display:none}
+  body.playing .top{margin-bottom:6px; padding-top:6px; padding-inline:6px}
+  body.playing .top-actions{width:100%; flex-wrap:nowrap; justify-content:space-between; gap:6px}
+  body.playing .ghost{padding:8px 8px; font-size:8px; flex:1 1 auto; text-align:center}
+  .tv{max-width:none; border-radius:0; padding:4px; padding-top:22px; box-shadow:0 1px 0 #383838, 0 -1px 0 #383838}
+  .tv::before{top:8px; left:10px; width:6px; height:6px}
+  .tv::after{top:8px; left:22px; font-size:6px}
+  .tv .model{top:7px; right:10px; font-size:6px}
+  .hud{gap:4px; margin-bottom:4px}
+  .sb{padding:3px 2px 2px; border-width:2px}
+  .sb b{font-size:21px}
+  .sb span{font-size:6px; margin-bottom:2px}
+  .screen{border-radius:3px; box-shadow:0 0 0 2px #000}
+  .pad{margin-top:10px; gap:8px; padding-inline:6px}
+  .pbtn.run{padding:20px 10px}
+  .r1pad,.r2pad,.stam{width:100%}
+  .hint{font-size:6px; padding-inline:10px}
+  .layout{gap:18px}
+  .side{padding-inline:12px}
+}
 @media (prefers-reduced-motion: reduce){
   .crt,.app,.screen.shake,.sb.low b,.newbest,.light.turn span{animation:none}
   .callout.go{animation-duration:.01s; animation-fill-mode:forwards}
@@ -1948,7 +1973,10 @@ function update(dt){
       $('stamLbl').textContent = ['STOPPED','RUNNING','FAST','FASTER','TOP SPEED'][lvl]; }
   }
   $('sbTime').classList.toggle('low', tl != null && tl <= 10 && tl > 0);
-  const qh = S.scene === 'title'; if ($('quitBtn').hidden !== qh){ $('quitBtn').hidden = qh; if (qh) disarmQuit(); }
+  const qh = S.scene === 'title'; if ($('quitBtn').hidden !== qh){ $('quitBtn').hidden = qh; if (qh) disarmQuit();
+    document.body.classList.toggle('playing', !qh);
+    // on phones, bring the console to the top of the screen when a game starts
+    if (!qh && innerWidth <= 600){ const tv = document.querySelector('.tv'); try { scrollTo({ top: Math.max(0, tv.getBoundingClientRect().top + scrollY - 44), behavior: reduce ? 'auto' : 'smooth' }); } catch(e){} } }
 }
 function draw(){
   g.setTransform(1,0,0,1,0,0);
